@@ -1,12 +1,18 @@
-import Foundation
+import SwiftUI
 
-extension CGPoint {
+extension CGPoint: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(x)
+        hasher.combine(y)
+    }
+    
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.equalTo(rhs)
+    }
     static func +(lhs: CGPoint, rhs: CGPoint) -> CGPoint {
         return CGPoint(x: lhs.x + rhs.x, y: lhs.y + rhs.y)
     }
-}
-
-extension CGPoint {
+    
     static func *(point: CGPoint, scalar: CGFloat) -> CGPoint {
         return CGPoint(x: point.x * scalar, y: point.y * scalar)
     }
