@@ -1,28 +1,20 @@
 import SwiftUI
 
-struct Content: View {
-    @State var model = Model(name: "test", accuracy: 0.01)
-
+struct Columns: View {
+    @State var cord: CGFloat = 1000
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Importer()
-            Button("Run") {
-                //model.point(at: .zero)
-                //model.point(at: .one)
-                //try? model.line(from: "A", to: "B")
-                //model.update()
-                //model.mesh()
-                //model.build()
-                //processFilesInSubdirectory()
-            }
+        VStack(alignment: .leading) {
+            Slider(value: $cord, in: 50...2000, step: 50)
+            Airfoil(id: "74-130 WP2", cord: cord)
         }
         .padding()
+        .toolbar {
+            Parser(to: .documentDirectory, as: "library")
+        }
     }
 }
 
 #Preview {
-    Content()
+    Columns()
 }

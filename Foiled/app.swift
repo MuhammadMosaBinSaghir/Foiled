@@ -4,7 +4,7 @@ import SwiftUI
 struct Foiled: App {
     var body: some Scene {
         WindowGroup {
-            Content()
+            Columns()
         }
     }
 }

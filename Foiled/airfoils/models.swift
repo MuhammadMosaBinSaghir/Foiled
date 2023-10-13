@@ -1,6 +1,6 @@
 import SwiftUI
 
-var library = Contours.build()
+let library = Contours.build()
 
 struct Airfoil: Identifiable, View {
     var id: String
@@ -8,7 +8,8 @@ struct Airfoil: Identifiable, View {
     var contour: Contour? { library.first(where: { $0.name == id } ) }
     
     var body: some View {
-        contour
+        contour?
+            .stroke(.primary, lineWidth: 1)
             .frame(width: cord, height: cord*(contour?.thickness.total ?? .zero))
     }
 }
@@ -19,16 +20,21 @@ enum Spline: Double, CaseIterable {
     case uniform = 0
 }
 
+struct Thickness {
+    var bottom: CGFloat
+    var top: CGFloat
+    var total: CGFloat { top - bottom }
+}
+
 struct Contour: Hashable, Decodable, Shape {
     var name: String
     var coordinates: [CGPoint]
-    var thickness: (bottom: CGFloat, top: CGFloat, total: CGFloat) {
-        let top = coordinates.max { $0.y < $1.y }?.y ?? .zero
-        let bottom = coordinates.min { $0.y < $1.y }?.y ?? .zero
-        return (bottom: bottom, top: top, total: top - bottom)
+    var thickness: Thickness {
+        let ordered = coordinates.sorted(by: {$0.y < $1.y})
+        return Thickness(bottom: ordered.first?.y ?? .zero, top: ordered.last?.y ?? .zero)
     }
-    //var num: Double
-    //var type: Spline
+    var dotted = true
+    var dot: CGFloat = 0.005
     
     private enum CodingKeys: String, CodingKey {
         case name
@@ -38,10 +44,14 @@ struct Contour: Hashable, Decodable, Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         let confined = coordinates.map { confine(coordinate: $0, in: rect) }
-        //let spline = confined.spline(by: 1, type: .centripetal) BROKEN?
-        //save to library new spline or at least 200 points.
-        path.move(to: confined.first ?? CGPoint(x: rect.midX, y: rect.maxY))
-        _ = confined.map { path.addLine(to: $0) }
+        var spline = confined.spline(by: 4, type: .centripetal)
+        path.move(to: spline.first ?? CGPoint(x: rect.midX, y: rect.maxY))
+        _ = spline.map { path.addLine(to: $0) }
+        guard dotted else { return path }
+        spline.removeLast()
+        let size = dot*rect.width
+        spline.removeLast()
+        _ = spline.map { path.addEllipse(in: CGRect(x: $0.x - size, y: $0.y - size, width: 2*size, height: 2*size)) }
         return path
     }
     

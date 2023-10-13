@@ -29,15 +29,13 @@ extension CGPoint: Hashable {
 
 extension Array where Element == CGPoint {
     func spline(by accuracy: Int = 4, type: Spline = .centripetal) -> [CGPoint] {
-        func knot(_ base: Double, from pointer: CGPoint, to pointed: CGPoint) -> Double {
-            pow(pointer.distance(to: pointed), type.rawValue) + base
-        }
+        guard self.count > 3 else { return self }
         var spline = [CGPoint]()
-        for i in 1...(self.count - 3) {
-            let P0 = self[i - 1]
+        for i in 0...self.count - 2 {
+            let P0 = self[i == 0 ? self.count - 3 : i - 1]
             let P1 = self[i]
-            let P2 = self[i + 1]
-            let P3 = self[i + 2]
+            let P2 = self[i+1]
+            let P3 = self[i == (self.count - 2) ? 1 : i + 2]
             
             let t0 = 0.0
             let t1 = knot(t0, from: P0, to: P1)
@@ -56,11 +54,11 @@ extension Array where Element == CGPoint {
                 spline.append(point)
             }
         }
-        guard let first = self.first else { return spline }
-        spline.insert(first, at: 0)
-        guard let last = self.last else { return spline }
-        spline.append(last)
+        spline.append(self.last!)
         return spline
+        
+        func knot(_ base: Double, from pointer: CGPoint, to pointed: CGPoint) -> Double {
+            pow(pointer.distance(to: pointed), type.rawValue) + base
+        }
     }
 }
-

@@ -9,16 +9,17 @@ struct Parser: View {
         Button {
             show.toggle()
         } label: {
-            Label("Import", systemImage: "square.and.arrow.up")
+            Label("Parse", systemImage: "square.and.arrow.down")
         }
         .fileImporter(
-            isPresented: $show,
+            isPresented:
+                $show,
             allowedContentTypes: [.directory]) { result in
                 process(result)
             }
     }
     
-    init(file: String, to path: FileManager.SearchPathDirectory) {
+    init(to path: FileManager.SearchPathDirectory, as file: String) {
         self.show = false
         self.file = file
         self.path = path
