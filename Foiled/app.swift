@@ -4,7 +4,9 @@ import SwiftUI
 struct Foiled: App {
     var body: some Scene {
         WindowGroup {
-            Columns()
+            Navigation()
         }
+        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
     }
 }

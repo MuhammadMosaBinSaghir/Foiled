@@ -5,7 +5,7 @@ struct Navigation: View {
     @State var selected: String? = nil
     
     var filtered: Contours {
-        guard !search.isEmpty else { return Set<Contour>() }
+        guard !search.isEmpty else { return library }
         return library.filter { $0.name.contains(search.uppercased()) }
     }
     
@@ -14,9 +14,16 @@ struct Navigation: View {
             Sidebar()
                 .frame(minWidth: 180)
         } detail: {
-            library.first(where: { $0.name == selected } )?
-                .stroke(.primary, lineWidth: 1)
-                .frame(minWidth: 1000)
+            VStack {
+                Spacer()
+                //Airfoil(id: selected, cord: 1000)
+                ContourCircle(location: 0.5, radius: 0.01, id: selected)
+                    .stroke(.primary, lineWidth: 1)
+                    .frame(width: 750, height: 100)
+                    
+                    //.background(.red)
+                Spacer()
+            }
         }
     }
     
@@ -32,8 +39,10 @@ struct Navigation: View {
                             .padding(4)
                             .background(RoundedRectangle(cornerRadius: 4).fill(.quaternary))
                     }
+                    
                     contour
                         .stroke(.primary, lineWidth: 1)
+                        .aspectRatio(1/contour.thickness.total, contentMode: .fit)
                 }
                 .padding(.bottom, 16)
                 .padding([.top, .horizontal], 8)
