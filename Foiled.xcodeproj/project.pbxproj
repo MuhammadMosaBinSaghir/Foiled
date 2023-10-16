@@ -17,6 +17,7 @@
 		C3A2E6402AC162030080AAAE /* CGMSH.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3A2E63E2AC161F50080AAAE /* CGMSH.xcframework */; };
 		C3A2E6412AC162030080AAAE /* CGMSH.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C3A2E63E2AC161F50080AAAE /* CGMSH.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C3A2E6452AC1EAC60080AAAE /* model.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A2E6442AC1EAC60080AAAE /* model.swift */; };
+		C3C2E1E62ADCBFED006C67CB /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3C2E1E42ADCBFE9006C67CB /* Metal.framework */; };
 		C3D4BF692AD70D9E006DC387 /* library.json in Resources */ = {isa = PBXBuildFile; fileRef = C3D4BF682AD70D9E006DC387 /* library.json */; };
 		C3D4BF6C2AD715C2006DC387 /* contours.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4BF6B2AD715C2006DC387 /* contours.swift */; };
 		C3D4BF6E2AD71607006DC387 /* generic.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4BF6D2AD71607006DC387 /* generic.swift */; };
@@ -49,6 +50,7 @@
 		C3A2E6392AC1613C0080AAAE /* bridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bridge.h; sourceTree = "<group>"; };
 		C3A2E63E2AC161F50080AAAE /* CGMSH.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = CGMSH.xcframework; sourceTree = "<group>"; };
 		C3A2E6442AC1EAC60080AAAE /* model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = model.swift; sourceTree = "<group>"; };
+		C3C2E1E42ADCBFE9006C67CB /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		C3D4BF682AD70D9E006DC387 /* library.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = library.json; sourceTree = "<group>"; };
 		C3D4BF6B2AD715C2006DC387 /* contours.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = contours.swift; sourceTree = "<group>"; };
 		C3D4BF6D2AD71607006DC387 /* generic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = generic.swift; sourceTree = "<group>"; };
@@ -59,6 +61,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C3C2E1E62ADCBFED006C67CB /* Metal.framework in Frameworks */,
 				C3A2E6402AC162030080AAAE /* CGMSH.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -89,6 +92,7 @@
 			children = (
 				C3A2E6282AC160780080AAAE /* Foiled */,
 				C3A2E6272AC160780080AAAE /* Products */,
+				C3C2E1E32ADCBFE9006C67CB /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -147,6 +151,14 @@
 				C3A2E6442AC1EAC60080AAAE /* model.swift */,
 			);
 			path = "s-wrapper";
+			sourceTree = "<group>";
+		};
+		C3C2E1E32ADCBFE9006C67CB /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				C3C2E1E42ADCBFE9006C67CB /* Metal.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		C3D4BF6A2AD715A1006DC387 /* extensions */ = {

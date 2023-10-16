@@ -79,4 +79,3 @@ extension Set where Element == Contour {
         }
     }
 }
-

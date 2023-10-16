@@ -28,6 +28,40 @@ extension CGPoint: Hashable {
 }
 
 extension Array where Element == CGPoint {
+    func tessellate() -> [CGFloat] {
+        var areas = [CGFloat](repeating: 0, count: self.count)
+        let triangulate = { (P0: CGPoint, P1: CGPoint, P2: CGPoint) -> CGFloat in
+            abs(P0.x*P1.y + P1.x*P2.y + P2.x*P0.y - P0.x*P2.y - P1.x*P0.y - P2.x*P1.y)/2
+        }
+        for i in 1...self.count-2 {
+            areas.append(triangulate(self[i-1], self[i], self[i+1]))
+        }
+        return areas
+    }
+    
+    private mutating func streamline(to size: Int = 60, tolerance: CGFloat = 0.1) {
+        guard self.count > size else { return }
+        var areas = self.tessellate()
+        areas.removeAll(where: { $0.isEqual(to: .zero) } )
+        guard let smallest = areas.min() else { return }
+        guard smallest <= tolerance else { return }
+        guard let index = areas.firstIndex(where: { $0 == smallest } )
+        else { return }
+        self.remove(at: index)
+        streamline(to: size, tolerance: tolerance)
+    }
+    
+    mutating func seal() {
+        guard self.count > 0 else { return }
+        self.append(self.first!)
+    }
+    
+    mutating func streamlined(until size: Int = 60, tolerance: CGFloat = 0.1) -> Self {
+        streamline(to: size, tolerance: tolerance)
+        seal()
+        return self
+    }
+    
     func spline(by accuracy: Int = 4, type: Spline = .centripetal) -> [CGPoint] {
         guard self.count > 3 else { return self }
         var spline = [CGPoint]()

@@ -6,7 +6,7 @@ struct Foiled: App {
         WindowGroup {
             Navigation()
         }
+        .windowToolbarStyle(.unified)
         .windowResizability(.contentSize)
-        .windowStyle(.hiddenTitleBar)
     }
 }
