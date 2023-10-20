@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		C30C7B252AC4B08000BC6EFC /* models.swift in Sources */ = {isa = PBXBuildFile; fileRef = C30C7B242AC4B08000BC6EFC /* models.swift */; };
+		C33188162AE07E5500D95E7C /* path.swift in Sources */ = {isa = PBXBuildFile; fileRef = C33188152AE07E5500D95E7C /* path.swift */; };
+		C33188182AE0DADE00D95E7C /* size.swift in Sources */ = {isa = PBXBuildFile; fileRef = C33188172AE0DADE00D95E7C /* size.swift */; };
 		C33DA7602ACB215C00880594 /* points.swift in Sources */ = {isa = PBXBuildFile; fileRef = C33DA75F2ACB215C00880594 /* points.swift */; };
 		C33DA7662ACB6E7100880594 /* parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = C33DA7652ACB6E7100880594 /* parser.swift */; };
 		C3A2E62A2AC160780080AAAE /* app.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A2E6292AC160780080AAAE /* app.swift */; };
@@ -17,10 +19,11 @@
 		C3A2E6402AC162030080AAAE /* CGMSH.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3A2E63E2AC161F50080AAAE /* CGMSH.xcframework */; };
 		C3A2E6412AC162030080AAAE /* CGMSH.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C3A2E63E2AC161F50080AAAE /* CGMSH.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C3A2E6452AC1EAC60080AAAE /* model.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A2E6442AC1EAC60080AAAE /* model.swift */; };
-		C3C2E1E62ADCBFED006C67CB /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3C2E1E42ADCBFE9006C67CB /* Metal.framework */; };
+		C3C2E1E92ADD00C6006C67CB /* shapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3C2E1E82ADD00C6006C67CB /* shapes.swift */; };
 		C3D4BF692AD70D9E006DC387 /* library.json in Resources */ = {isa = PBXBuildFile; fileRef = C3D4BF682AD70D9E006DC387 /* library.json */; };
 		C3D4BF6C2AD715C2006DC387 /* contours.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4BF6B2AD715C2006DC387 /* contours.swift */; };
 		C3D4BF6E2AD71607006DC387 /* generic.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4BF6D2AD71607006DC387 /* generic.swift */; };
+		C3DC1BB82ADDC9EF004A6B07 /* NACA.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3DC1BB72ADDC9EF004A6B07 /* NACA.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -39,9 +42,11 @@
 
 /* Begin PBXFileReference section */
 		C30C7B242AC4B08000BC6EFC /* models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = models.swift; sourceTree = "<group>"; };
+		C33188142ADF1F0E00D95E7C /* Foiled.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Foiled.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C33188152AE07E5500D95E7C /* path.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = path.swift; sourceTree = "<group>"; };
+		C33188172AE0DADE00D95E7C /* size.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = size.swift; sourceTree = "<group>"; };
 		C33DA75F2ACB215C00880594 /* points.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = points.swift; sourceTree = "<group>"; };
 		C33DA7652ACB6E7100880594 /* parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = parser.swift; sourceTree = "<group>"; };
-		C3A2E6262AC160780080AAAE /* Foiled.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Foiled.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3A2E6292AC160780080AAAE /* app.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = app.swift; sourceTree = "<group>"; };
 		C3A2E62B2AC160780080AAAE /* navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = navigation.swift; sourceTree = "<group>"; };
 		C3A2E62D2AC160790080AAAE /* build.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = build.xcassets; sourceTree = "<group>"; };
@@ -50,10 +55,11 @@
 		C3A2E6392AC1613C0080AAAE /* bridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bridge.h; sourceTree = "<group>"; };
 		C3A2E63E2AC161F50080AAAE /* CGMSH.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = CGMSH.xcframework; sourceTree = "<group>"; };
 		C3A2E6442AC1EAC60080AAAE /* model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = model.swift; sourceTree = "<group>"; };
-		C3C2E1E42ADCBFE9006C67CB /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		C3C2E1E82ADD00C6006C67CB /* shapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = shapes.swift; sourceTree = "<group>"; };
 		C3D4BF682AD70D9E006DC387 /* library.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = library.json; sourceTree = "<group>"; };
 		C3D4BF6B2AD715C2006DC387 /* contours.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = contours.swift; sourceTree = "<group>"; };
 		C3D4BF6D2AD71607006DC387 /* generic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = generic.swift; sourceTree = "<group>"; };
+		C3DC1BB72ADDC9EF004A6B07 /* NACA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NACA.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,7 +67,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3C2E1E62ADCBFED006C67CB /* Metal.framework in Frameworks */,
 				C3A2E6402AC162030080AAAE /* CGMSH.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -91,17 +96,8 @@
 			isa = PBXGroup;
 			children = (
 				C3A2E6282AC160780080AAAE /* Foiled */,
-				C3A2E6272AC160780080AAAE /* Products */,
-				C3C2E1E32ADCBFE9006C67CB /* Frameworks */,
+				C33188142ADF1F0E00D95E7C /* Foiled.app */,
 			);
-			sourceTree = "<group>";
-		};
-		C3A2E6272AC160780080AAAE /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				C3A2E6262AC160780080AAAE /* Foiled.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 		C3A2E6282AC160780080AAAE /* Foiled */ = {
@@ -153,20 +149,16 @@
 			path = "s-wrapper";
 			sourceTree = "<group>";
 		};
-		C3C2E1E32ADCBFE9006C67CB /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				C3C2E1E42ADCBFE9006C67CB /* Metal.framework */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
 		C3D4BF6A2AD715A1006DC387 /* extensions */ = {
 			isa = PBXGroup;
 			children = (
 				C3D4BF6D2AD71607006DC387 /* generic.swift */,
-				C33DA75F2ACB215C00880594 /* points.swift */,
 				C3D4BF6B2AD715C2006DC387 /* contours.swift */,
+				C33188152AE07E5500D95E7C /* path.swift */,
+				C33DA75F2ACB215C00880594 /* points.swift */,
+				C3C2E1E82ADD00C6006C67CB /* shapes.swift */,
+				C33188172AE0DADE00D95E7C /* size.swift */,
+				C3DC1BB72ADDC9EF004A6B07 /* NACA.swift */,
 			);
 			path = extensions;
 			sourceTree = "<group>";
@@ -191,7 +183,7 @@
 			packageProductDependencies = (
 			);
 			productName = Foiled;
-			productReference = C3A2E6262AC160780080AAAE /* Foiled.app */;
+			productReference = C33188142ADF1F0E00D95E7C /* Foiled.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -221,7 +213,7 @@
 			mainGroup = C3A2E61D2AC160780080AAAE;
 			packageReferences = (
 			);
-			productRefGroup = C3A2E6272AC160780080AAAE /* Products */;
+			productRefGroup = C3A2E61D2AC160780080AAAE;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -248,13 +240,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C33188162AE07E5500D95E7C /* path.swift in Sources */,
+				C3DC1BB82ADDC9EF004A6B07 /* NACA.swift in Sources */,
 				C30C7B252AC4B08000BC6EFC /* models.swift in Sources */,
 				C3D4BF6C2AD715C2006DC387 /* contours.swift in Sources */,
+				C33188182AE0DADE00D95E7C /* size.swift in Sources */,
 				C3A2E62C2AC160780080AAAE /* navigation.swift in Sources */,
 				C3A2E62A2AC160780080AAAE /* app.swift in Sources */,
 				C33DA7662ACB6E7100880594 /* parser.swift in Sources */,
 				C3D4BF6E2AD71607006DC387 /* generic.swift in Sources */,
 				C3A2E6452AC1EAC60080AAAE /* model.swift in Sources */,
+				C3C2E1E92ADD00C6006C67CB /* shapes.swift in Sources */,
 				C33DA7602ACB215C00880594 /* points.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

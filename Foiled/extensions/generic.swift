@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 extension Comparable {
     func clamped(to limits: ClosedRange<Self>) -> Self {

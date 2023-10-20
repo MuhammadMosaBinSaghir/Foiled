@@ -10,6 +10,18 @@ enum ExportingError: Error {
 
 typealias Contours = Set<Contour>
 
+extension Contour: Hashable {
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(name)
+        hasher.combine(dot)
+        hasher.combine(bumps)
+    }
+    
+    static func == (lhs: Contour, rhs: Contour) -> Bool {
+        lhs.name == rhs.name && lhs.dot == rhs.dot && lhs.options == rhs.options && lhs.bumps == rhs.bumps
+    }
+}
+
 extension Set where Element == Contour {
     static func build() -> Contours {
         guard let url = Bundle.main.url(forResource: "library", withExtension: "json")

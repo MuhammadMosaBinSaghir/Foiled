@@ -1,8 +1,10 @@
-//
-//  size.swift
-//  Foiled
-//
-//  Created by Muhammad Saghir on 2023-10-18.
-//
+import SwiftUI
 
-import Foundation
+extension CGSize {
+    func relative(to rect: CGRect) -> Self {
+        CGSize(
+            width: self.width*rect.width,
+            height: self.height*rect.height
+        )
+    }
+}

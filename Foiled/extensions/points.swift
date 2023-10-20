@@ -9,21 +9,35 @@ extension CGPoint: Hashable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.equalTo(rhs)
     }
-    static func +(lhs: CGPoint, rhs: CGPoint) -> CGPoint {
+    static func +(lhs: Self, rhs: Self) -> CGPoint {
         return CGPoint(x: lhs.x + rhs.x, y: lhs.y + rhs.y)
     }
     
-    static func *(point: CGPoint, scalar: CGFloat) -> CGPoint {
+    static func *(point: Self, scalar: CGFloat) -> Self {
         return CGPoint(x: point.x * scalar, y: point.y * scalar)
     }
-    static func *(scalar: CGFloat, point: CGPoint) -> CGPoint {
+    static func *(scalar: CGFloat, point: Self) -> Self {
         return point*scalar
     }
     
-    func distance(to point: CGPoint) -> CGFloat {
+    func distance(to point: Self) -> CGFloat {
         let dx = self.x - point.x
         let dy = self.y - point.y
         return sqrt(dx*dx + dy*dy)
+    }
+    
+    func roughlyEquals(_ point: Self, tolerance: CGFloat) -> Bool {
+        distance(to: point) < tolerance
+    }
+    
+    func relative(to edges: (left: CGFloat, right: CGFloat, bottom: CGFloat, top: CGFloat), in rect: CGRect) -> Self {
+        let shift = 0.5*(rect.height + edges.bottom - edges.top)
+        let top = edges.top + shift
+        let bottom = edges.bottom - shift
+        return CGPoint(
+            x: (self.x + 0.5*rect.width)*(edges.right-edges.left)/rect.width + edges.left,
+            y: (self.y + 0.5*rect.height)*(top-bottom)/rect.height + bottom - 0.5*(edges.top - edges.bottom)
+        )
     }
 }
 
@@ -94,5 +108,38 @@ extension Array where Element == CGPoint {
         func knot(_ base: Double, from pointer: CGPoint, to pointed: CGPoint) -> Double {
             pow(pointer.distance(to: pointed), type.rawValue) + base
         }
+    }
+    
+    func normalize(flip: Bool = false) -> [CGPoint] {
+        let cordwise = self.sorted(by: {$0.x > $1.x})
+        let thickwise = self.sorted(by: {$0.y > $1.y})
+        let trailing = cordwise[0]
+        let cotrailing = cordwise[1]
+        let leading = cordwise.last ?? .zero
+        let shift = cotrailing.x != 1 ?
+        trailing.y : 0.5*abs((trailing.y.distance(to: cotrailing.y)))
+        let lower = thickwise.last ?? .zero
+        let upper = thickwise[0]
+        let cord = abs(trailing.x.distance(to: leading.x))
+        let thickness = abs(upper.y.distance(to: lower.y))
+        print("c: \(cord)")
+        print("trailing: \(trailing.y/cord)")
+        print("cotrailing: \(cotrailing.y/cord)")
+        return self.map {
+            CGPoint(
+                x: abs($0.x.distance(to: leading.x))/cord,
+                y: abs($0.y.distance(to: upper.y))/cord
+            )
+        }
+    }
+    
+    func parse(precision digits: Int) -> String {
+        let coordinates = self.map {
+            "(\(Double($0.x).formatted(.number.precision(.significantDigits(digits)))), \(Double($0.y).formatted(.number.precision(.significantDigits(digits))))),"
+        }
+        var text = coordinates.reduce("[") { $0 + $1 }
+        text.removeLast()
+        text.append("]")
+        return text
     }
 }
