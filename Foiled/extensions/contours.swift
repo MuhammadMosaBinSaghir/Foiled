@@ -14,11 +14,12 @@ extension Contour: Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(name)
         hasher.combine(dot)
-        hasher.combine(bumps)
+        hasher.combine(options)
+        hasher.combine(points)
     }
     
     static func == (lhs: Contour, rhs: Contour) -> Bool {
-        lhs.name == rhs.name && lhs.dot == rhs.dot && lhs.options == rhs.options && lhs.bumps == rhs.bumps
+        lhs.name == rhs.name && lhs.dot == rhs.dot && lhs.options == rhs.options && rhs.points == lhs.points
     }
 }
 

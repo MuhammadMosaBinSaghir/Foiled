@@ -26,10 +26,6 @@ extension CGPoint: Hashable {
         return sqrt(dx*dx + dy*dy)
     }
     
-    func roughlyEquals(_ point: Self, tolerance: CGFloat) -> Bool {
-        distance(to: point) < tolerance
-    }
-    
     func relative(to edges: (left: CGFloat, right: CGFloat, bottom: CGFloat, top: CGFloat), in rect: CGRect) -> Self {
         let shift = 0.5*(rect.height + edges.bottom - edges.top)
         let top = edges.top + shift
@@ -42,6 +38,27 @@ extension CGPoint: Hashable {
 }
 
 extension Array where Element == CGPoint {
+    func range() -> (abscissas: ClosedRange<CGFloat>, ordinates: ClosedRange<CGFloat>) {
+        let lengths = self.sorted(by: {$0.x < $1.x})
+        let heights = self.sorted(by: {$0.y < $1.y})
+        return (
+            abscissas: lengths[0].x...lengths[count-1].x,
+            ordinates: heights[0].y...lengths[count-1].y
+        )
+    }
+    
+    func map(in abscissas: ClosedRange<CGFloat> = 1...1, and ordinates: ClosedRange<CGFloat> = 1...1) -> [CGPoint] {
+        let range = self.range()
+        let defaulted = (abscissas: abscissas == 1...1, ordinates: ordinates == 1...1)
+        switch defaulted {
+        case (true, true): return self
+        default: return self.map { CGPoint(
+            x:  defaulted.abscissas ? $0.x : ($0.x - range.abscissas.lowerBound)*(abscissas.upperBound - abscissas.lowerBound)/(range.abscissas.upperBound - range.abscissas.lowerBound) + abscissas.lowerBound,
+            y:  defaulted.ordinates ? $0.y : ($0.y - range.ordinates.lowerBound)*(ordinates.upperBound - ordinates.lowerBound)/(range.ordinates.upperBound - range.ordinates.lowerBound) + ordinates.lowerBound
+        ) }
+        }
+    }
+    
     func tessellate() -> [CGFloat] {
         var areas = [CGFloat](repeating: 0, count: self.count)
         let triangulate = { (P0: CGPoint, P1: CGPoint, P2: CGPoint) -> CGFloat in
@@ -53,30 +70,30 @@ extension Array where Element == CGPoint {
         return areas
     }
     
-    private mutating func streamline(to size: Int = 60, tolerance: CGFloat = 0.1) {
+    private mutating func streamline(to size: Int) {
         guard self.count > size else { return }
         var areas = self.tessellate()
         areas.removeAll(where: { $0.isEqual(to: .zero) } )
         guard let smallest = areas.min() else { return }
-        guard smallest <= tolerance else { return }
         guard let index = areas.firstIndex(where: { $0 == smallest } )
         else { return }
         self.remove(at: index)
-        streamline(to: size, tolerance: tolerance)
+        streamline(to: size)
     }
     
-    mutating func seal() {
-        guard self.count > 0 else { return }
-        self.append(self.first!)
+    mutating func close() {
+        guard self[0] != self[count - 1] else { return }
+        self.append(self[0])
     }
     
-    mutating func streamlined(until size: Int = 60, tolerance: CGFloat = 0.1) -> Self {
-        streamline(to: size, tolerance: tolerance)
-        seal()
+    mutating func streamlined(until size: Int) -> Self {
+        streamline(to: size)
+        close()
         return self
     }
     
     func spline(by accuracy: Int = 4, type: Spline = .centripetal) -> [CGPoint] {
+        guard accuracy > 0 else { return self }
         guard self.count > 3 else { return self }
         var spline = [CGPoint]()
         for i in 0...self.count - 2 {
@@ -110,6 +127,7 @@ extension Array where Element == CGPoint {
         }
     }
     
+    /*
     func normalize(flip: Bool = false) -> [CGPoint] {
         let cordwise = self.sorted(by: {$0.x > $1.x})
         let thickwise = self.sorted(by: {$0.y > $1.y})
@@ -132,7 +150,7 @@ extension Array where Element == CGPoint {
             )
         }
     }
-    
+    */
     func parse(precision digits: Int) -> String {
         let coordinates = self.map {
             "(\(Double($0.x).formatted(.number.precision(.significantDigits(digits)))), \(Double($0.y).formatted(.number.precision(.significantDigits(digits))))),"

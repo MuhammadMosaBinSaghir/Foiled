@@ -4,9 +4,8 @@ import SwiftUI
 struct Foiled: App {
     var body: some Scene {
         WindowGroup {
-            Navigation()
+            Navigation(selected: library.first(where: {$0.name == "20-32C"})!)
         }
         .windowToolbarStyle(.unified)
-        .windowResizability(.contentSize)
     }
 }

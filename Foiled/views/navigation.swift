@@ -1,27 +1,27 @@
+import Charts
 import SwiftUI
 
-struct Bump<S: Shape>: Shape, View {
-    var shape: S
-    var size: CGSize
-    var position: CGPoint
-    var rect: CGRect = .zero
-    var body: some View { shape }
-
-    func path(in rect: CGRect) -> Path { shape.path(in: rect) }
-}
-
 struct Navigation: View {
-    @State var selected: Contour = library.first(where: {$0.name == "20-32C"})!
+    @State var selected: Contour
     @State private var search: String = ""
     @State private var options = Set<Contouring>()
-
-    @State private var bump: Bump = .init(shape: .rect, size: .init(width: 0.05, height: 0.05), position: .zero)
     
-    private var pasteboard = NSPasteboard.general
+    private let pasteboard = NSPasteboard.general
+    private let gridlines = Gridlines(
+        style: (minor: .init(lineWidth: 0.5, lineJoin: .round, dash: [5]), major: .init(lineWidth: 0.5, lineJoin: .round, dash: [5])),
+        domain: (abscissa: -0.25...1.25, ordinate: -0.5...0.5),
+        quantity: (minor: 12, major: 6)
+    )
     
     var filtered: Contours {
         guard !search.isEmpty else { return library }
         return library.filter { $0.name.contains(search.uppercased()) }
+    }
+    
+    var range: [Int] {
+        let size = Double(selected.definition.count)
+        let coefficients: [Double] = [-0.5, -1/3, -0.25, 0, 1, 2, 3]
+        return coefficients.map { Int($0*(size-1) + size) }
     }
     
     var body: some View {
@@ -29,16 +29,16 @@ struct Navigation: View {
             Sidebar()
         } detail: {
             Details()
+                .ignoresSafeArea()
+                .frame(minWidth: 1000)
         }
         .navigationTitle("")
-        .toolbar {
-            HStack(alignment: .center, spacing: 4) {
-                Copy()
-                Dot()
-            }
-        }
+        .toolbar { Toolbar() }
         .toolbarBackground(.clear, for: .automatic)
-        .animation(.smooth, value: options)
+    }
+    
+    @ViewBuilder private func Buttoned() -> some View {
+        RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(style: .init(lineWidth: 0.5)).foregroundStyle(.secondary)
     }
     
     @ViewBuilder private func Dot() -> some View {
@@ -52,7 +52,6 @@ struct Navigation: View {
     
     @ViewBuilder private func Copy() -> some View {
         Button {
-            join()
             copy()
         } label: {
             Label("Copy", systemImage: "doc.on.doc")
@@ -60,39 +59,70 @@ struct Navigation: View {
         }
     }
     
+    @ViewBuilder private func Dots() -> some View {
+        Picker("Points", selection: $selected.points) {
+            ForEach(range, id: \.self) { Text("\($0) points") }
+        }
+        .background(Buttoned())
+        .frame(height: 24)
+    }
+    
+    @ViewBuilder private func Toolbar() -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            HStack(spacing: 0) {
+                Copy()
+                Dot()
+            }
+            .background(Buttoned())
+            Dots()
+        }
+    }
+    
+    @ViewBuilder private func Symbol() -> some View {
+        Circle()
+            .stroke(lineWidth: 0.5)
+            .frame(height: 8)
+            .foregroundStyle(
+                options.contains(.dotted) ? Color.primary : .clear
+            )
+    }
+    
     @ViewBuilder private func Details() -> some View {
-        GeometryReader { geometry in
-            ZStack {
-                VStack {
-                    Spacer()
-                    Contour(
-                        name: selected.name,
-                        coordinates: selected.coordinates,
-                        options: options,
-                        dot: 0.005
-                    )
-                    .stroke(.secondary, lineWidth: 1)
-                    .aspectRatio(1/selected.thickness.total, contentMode: .fit)
-                    .background(.blue)
-                    Spacer()
-                }
-                .background(.green)
-                bump
-                    .position(bump.position)
-                    .frame(width: geometry.size.width*bump.size.width, height: geometry.size.height*bump.size.height)
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                bump.position = value.location
-                            }
-                    )
-                    .onChange(of: geometry.frame(in: .global)) { oldValue, newValue in
-                        bump.rect = newValue
-                    }
+        Chart(selected.coordinates, id: \.self) {
+            LineMark(
+                x: PlottableValue.value("x", $0.x),
+                y: PlottableValue.value("y", $0.y)
+            )
+            .foregroundStyle(.primary)
+            .lineStyle(StrokeStyle(lineWidth: 1))
+            .symbol { Symbol() }
+        }
+        .chartXScale(domain: gridlines.domain.abscissa)
+        .chartYScale(domain: gridlines.domain.ordinate)
+        .chartXAxis {
+            AxisMarks(preset: .inset, values: gridlines.major.abscissa) {
+                AxisGridLine(centered: true, stroke: gridlines.style.major)
+                    .foregroundStyle(.secondary)
+            }
+            AxisMarks(preset: .inset, values: gridlines.minor.abscissa) {
+                AxisGridLine(centered: true, stroke: gridlines.style.minor)
+                    .foregroundStyle(.tertiary)
+                AxisValueLabel(gridlines.minor.abscissa[$0.index].formatted(.number.precision(.fractionLength(3))), anchor: .bottomTrailing, verticalSpacing: 12)
             }
         }
-        .background(.red)
-        .padding(.horizontal, 12)
+        .chartYAxis {
+            AxisMarks(preset: .inset, values: gridlines.major.ordinate) {
+                AxisGridLine(centered: true, stroke: gridlines.style.major)
+                    .foregroundStyle(.secondary)
+            }
+            AxisMarks(preset: .inset, values: gridlines.minor.ordinate) {
+                AxisGridLine(centered: true, stroke: gridlines.style.minor)
+                    .foregroundStyle(.tertiary)
+            }
+            AxisMarks(preset: .inset, values: gridlines.minor.ordinate.dropLast(2)) {
+                AxisValueLabel(gridlines.minor.ordinate[$0.index].formatted(.number.precision(.fractionLength(3))), horizontalSpacing: 12)
+            }
+        }
     }
     
     @ViewBuilder private func Sidebar() -> some View {
@@ -118,55 +148,23 @@ struct Navigation: View {
     }
     
     private func copy() {
-        let text = selected.boundary().parse(precision: 5)
+        let text = selected.coordinates.parse(precision: 5)
         pasteboard.declareTypes([.string], owner: .none)
         pasteboard.setString(text, forType: .string)
     }
+    
     private func dotted() {
         switch options.contains(.dotted) {
         case true: options.remove(.dotted)
         case false: options.insert(.dotted)
         }
     }
-    private func join() {
-        let path1 = selected.path(in: bump.rect)
-        let path2 = bump.path(in: bump.rect)
-        let path3 = path2.scale(x: bump.size.width, y: bump.size.height, anchor: .center).path(in: bump.rect)
-        var horizontal = path3.coordinates().sorted(by: {$0.x < $1.x})
-        var vertical = path3.coordinates().sorted(by: {$0.y < $1.y})
-        var edges =
-        (
-            left: horizontal.first?.x ?? .zero,
-            right: horizontal.last?.x ?? .zero,
-            bottom: vertical.first?.y ?? .zero,
-            top: vertical.last?.y ?? .zero
-        )
-        let center = CGPoint(
-            x: 0.5*(edges.right + edges.left),
-            y: 0.5*(edges.top + edges.bottom)
-        )
-        horizontal = path1.coordinates().sorted(by: {$0.x < $1.x})
-        vertical = path1.coordinates().sorted(by: {$0.y < $1.y})
-        edges =
-        (
-            left: horizontal.first?.x ?? .zero,
-            right: horizontal.last?.x ?? .zero,
-            bottom: vertical.first?.y ?? .zero,
-            top: vertical.last?.y ?? .zero
-        )
-        let position = bump.position.relative(to: edges, in: bump.rect)
-        let translate = CGAffineTransform(
-            translationX: center.x < position.x ? (center.x - position.x) : -1*(center.x - position.x),
-            y: center.y < position.y ? (center.y - position.y) : -1*(center.y - position.y)
-        )
-        let path4 = path3.transform(translate).path(in: bump.rect)
-        let path5 = path1.union(path4)
-        
-        print(path5.coordinates().normalize().parse(precision: 5))
-        selected = Contour(name: "a", coordinates: path5.coordinates().normalize())
+    
+    init(selected: Contour) {
+        self.selected = selected
     }
 }
 
 #Preview {
-    Navigation()
+    Navigation(selected: library.first(where: {$0.name == "20-32C"})!)
 }
