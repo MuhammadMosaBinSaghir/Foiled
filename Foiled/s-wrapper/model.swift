@@ -1,73 +1,109 @@
 import Foundation
 
-protocol Structure {
-    var tag: Int32 { get }
-    var name: String? { get }
+// Surface & Loop should pull from common source
+// Call as reference, there's too much data-duplication
+typealias Tag = Int32
+    
+enum Geometry {
+    case lines
+    case loop
+    case surface
+    
+    func build(from coordinates: [CGPoint], into instance: inout Tag, tags: ClosedRange<Tag>, accuracy: Double, plane: Double) {
+        guard self == .lines else { return }
+        _ = coordinates.map { coordinate in
+            withUnsafeMutablePointer(to: &instance) {
+                gmshModelGeoAddPoint(
+                    coordinate.x, coordinate.y, plane, accuracy, -1, $0
+                )
+            }
+        }
+        _ = tags.map { index in
+            _ = withUnsafeMutablePointer(to: &instance) {
+                switch index == coordinates.count {
+                case true: gmshModelGeoAddLine(index, 1, -1, $0)
+                case false: gmshModelGeoAddLine(index, index + tags.lowerBound, -1, $0)
+                }
+            }
+        }
+    }
+    
+    func build(from range: ClosedRange<Tag>, into instance: inout Tag) {
+        guard self != .lines else { return }
+        let tags = range.map { $0 }
+        let pointers = tags.withUnsafeBufferPointer { $0.baseAddress }
+        withUnsafeMutablePointer(to: &instance) {
+            switch self {
+            case .loop: gmshModelGeoAddCurveLoop(pointers, tags.count, -1, 0, $0)
+            case .surface: gmshModelGeoAddPlaneSurface(pointers, tags.count, -1, $0)
+            default: return
+            }
+        }
+    }
 }
-
-struct Point: Structure {
-    let tag: Int32
-    var name: String?
-    let coordinate: SIMD3<Double>
-}
-
-struct Line: Structure {
-    let tag: Int32
-    let name: String?
-    let points: [Point]
-}
-
-enum ModelErrors: Error { case undefined }
 
 struct Model {
     let name: String
-    let accuracy: Double
-    private var instance: Int32
+    let plane: Double
+    let accuracy: (boundary: Double, contour: Double)
+    private var instance: Tag
+    private var coordinates: [CGPoint]
     
-    var points = [Point]()
-    var lines = [Line]()
-    
-    init(name: String, accuracy: Double) {
-        var instance: Int32 = 0
+    init(contour: Contour, plane: Double = .zero, accuracy: (boundary: Double, contour: Double)) {
+        self.name = contour.name
+        self.coordinates = contour.coordinates
+        self.plane = plane
+        self.accuracy = accuracy
+        self.instance = 0
         withUnsafeMutablePointer(to: &instance) { gmshInitialize(0, nil, 1, 0, $0) }
         withUnsafeMutablePointer(to: &instance) { gmshModelAdd(name, $0) }
-        self.name = name
-        self.accuracy = accuracy
-        self.instance = instance
     }
     
-    mutating func point(name: String? = nil, at vector: SIMD3<Double>) {
+    mutating func contour() {
+        coordinates.open()
+        Geometry.lines.build(
+            from: coordinates,
+            into: &instance, 
+            tags: 1...Tag(coordinates.count),
+            accuracy: accuracy.contour,
+            plane: plane
+        )
+        Geometry.loop.build(from: 1...Tag(coordinates.count), into: &instance)
+    }
+    
+    mutating func boundary(radius: Double = 1) {
+        guard !coordinates.isEmpty else { return }
+        let sorted = coordinates.sorted(by: {$0.y < $1.y})
+        let bottom = sorted.first!.y
+        let top = sorted.last!.y
+        let leading: Double = 0
+        let trailing: Double = 1
+        let points: [CGPoint] = [
+            CGPoint(x: leading, y: bottom - radius),
+            CGPoint(x: trailing + radius, y: bottom - radius),
+            CGPoint(x: trailing + radius, y: top + radius),
+            CGPoint(x: leading, y: top + radius)
+        ]
+        let tags = Tag(coordinates.count + 1)...Tag(coordinates.count + points.count)
+        Geometry.lines.build(
+            from: points,
+            into: &instance, 
+            tags: tags,
+            accuracy: accuracy.boundary,
+            plane: plane
+        )
+        Geometry.loop.build(from: tags, into: &instance)
+    }
+    /*
+    mutating func surface(from loops: [Loop], as name: String? = nil) {
+        let tags =  loops.map { $0.tag }
+        let pointers = tags.withUnsafeBufferPointer { $0.baseAddress }
         _ = withUnsafeMutablePointer(to: &instance) {
-            gmshModelGeoAddPoint(vector.x, vector.y, vector.z, accuracy, -1, $0)
+            gmshModelGeoAddPlaneSurface(pointers, tags.count, -1, $0);
         }
-        points.append(.init(tag: Int32(points.count + 1), name: name, coordinate: vector))
+        surfaces.append(Surface(tag: Tag(surfaces.count + 1), name: name, loops: loops))
     }
-    
-    mutating func line(
-        name: String? = nil,
-        from namer: String? = nil, to named: String? = nil,
-        pointer: Int32? = nil, pointed: Int32? = nil
-    ) throws {
-        let pointer: Point? =
-        switch (namer, named, pointer, pointed) {
-        case (.some, .some, _, _): points.first(where: { $0.name == namer })
-        case (_, _, .some, .some): points.first(where: { $0.tag == pointer })
-        default: nil
-        }
-        guard let pointer else { throw ModelErrors.undefined }
-        let pointed: Point? =
-        switch (named, pointed) {
-        case (.some, _): points.first(where: { $0.name == named })
-        case (_, .some): points.first(where: { $0.tag == pointed })
-        default: nil
-        }
-        guard let pointed else { throw ModelErrors.undefined }
-        _ = withUnsafeMutablePointer(to: &instance) {
-            gmshModelGeoAddLine(pointer.tag, pointed.tag, -1, $0)
-        }
-        lines.append(.init(tag: Int32(lines.count + 1), name: name, points: [pointer, pointed]))
-    }
-    
+    */
     mutating func update() { withUnsafeMutablePointer(to: &instance) { gmshModelGeoSynchronize($0) } }
     
     mutating func mesh() { withUnsafeMutablePointer(to: &instance) { gmshModelMeshGenerate(2, $0) } }

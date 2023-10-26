@@ -58,7 +58,6 @@
 		C3A2E6302AC160790080AAAE /* preview.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = preview.xcassets; sourceTree = "<group>"; };
 		C3A2E6322AC160790080AAAE /* settings.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = settings.entitlements; sourceTree = "<group>"; };
 		C3A2E6392AC1613C0080AAAE /* bridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bridge.h; sourceTree = "<group>"; };
-		C3A2E63A2AC1613D0080AAAE /* header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = header.h; sourceTree = "<group>"; };
 		C3A2E63E2AC161F50080AAAE /* CGMSH.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = CGMSH.xcframework; sourceTree = "<group>"; };
 		C3A2E6442AC1EAC60080AAAE /* model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = model.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -151,7 +150,6 @@
 		C3A2E6382AC161290080AAAE /* c-wrapper */ = {
 			isa = PBXGroup;
 			children = (
-				C3A2E63A2AC1613D0080AAAE /* header.h */,
 				C3A2E6392AC1613C0080AAAE /* bridge.h */,
 			);
 			path = "c-wrapper";
