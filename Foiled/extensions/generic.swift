@@ -1,5 +1,7 @@
 import SwiftUI
 
+extension Tag { mutating func increment() { self = self + 1 } }
+
 extension Comparable {
     func clamped(to limits: ClosedRange<Self>) -> Self {
         return min(max(self, limits.lowerBound), limits.upperBound)

@@ -91,6 +91,11 @@ extension Array where Element == CGPoint {
         self.removeLast()
     }
     
+    func opened() -> Self {
+        guard self[0] == self[count - 1] else { return self }
+        return Array(self.dropLast())
+    }
+    
     mutating func streamlined(until size: Int) -> Self {
         streamline(to: size)
         close()

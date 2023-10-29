@@ -158,43 +158,10 @@ struct Navigation: View {
     }
     
     private func mesh() {
-        var model = Model(contour: selected, accuracy: (boundary: 1, contour: 0.1))
-        model.contour()
-        model.boundary(radius: 10)
-        /*
-        for index in 1...Int32(selected.coordinates.count - 2) {
-            try? model.line(pointer: index, pointed: (index + 1))
-        }
-        try? model.line(pointer: Int32(selected.coordinates.count - 1), pointed: 1)
-        */
-        /*
-        let points: [SIMD3<Double>] = [
-            SIMD3(x: -1, y: -1, z: 0),
-            SIMD3(x: 2, y: -1, z: 0),
-            SIMD3(x: 2, y: 1, z: 0),
-            SIMD3(x: -1, y: 1, z: 0),
-        ]
-        for point in points {
-            model.point(
-                at: SIMD3(x: point.x, y: point.y, z: 0)
-            )
-        }
-        guard let begtag = (model.points.firstIndex { $0.coordinate == SIMD3(x: -1, y: -1, z: 0) }) else { return }
-        for index in Int32(begtag+1)...Int32(begtag+5) {
-            try? model.line(pointer: index, pointed: (index + 1))
-        }
-        try? model.line(pointer: Int32(begtag+4), pointed: Int32(begtag+1))
-        */
-        /*
-        for index in points.indices { model.point(at: points[index]) }
-        for index in 0...Int32(points.count) {
-            try? model.line(pointer: index, pointed: (index + 1))
-        }
-        try? model.line(pointer: Int32(points.count), pointed: 1)
-        */
-        model.update()
-        model.mesh()
-        model.build()
+        var model = Model(label: selected.name, instance: 1)
+        model.launch()
+        model.contour(from: selected.coordinates, on: .zero, precision: 0.01)
+        model.mesh(dimension: .second)
     }
     
     private func copy() {
@@ -218,3 +185,4 @@ struct Navigation: View {
 #Preview {
     Navigation(selected: library.first(where: {$0.name == "20-32C"})!)
 }
+
