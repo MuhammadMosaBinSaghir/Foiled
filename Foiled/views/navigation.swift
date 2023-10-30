@@ -158,10 +158,17 @@ struct Navigation: View {
     }
     
     private func mesh() {
-        var model = Model(label: selected.name, instance: 1)
+        var model = Model(label: selected.name, instance: 1, boundary: .c)
         model.launch()
         model.contour(from: selected.coordinates, on: .zero, precision: 0.01)
-        model.mesh(dimension: .second)
+        model.boundary(radius: 100, on: .zero, precision: 1)
+        model.structure(conditions: [
+            Transfinite(label: .contour, points: 100, type: .bump, parameter: 1),
+            Transfinite(label: .inlet, points: 100, type: .progression, parameter: 1),
+            Transfinite(label: .vertical, points: 100, type: .progression, parameter: 1),
+            Transfinite(label: .wake, points: 100, type: .progression, parameter: 1),
+        ])
+        model.mesh(dimension: .second, showcase: true)
     }
     
     private func copy() {

@@ -1,36 +1,50 @@
 import Foundation
 import SwiftUI
 
-//Leading Edge should be at (0, 0) and trailing should be at (1, 0)!
-
 typealias Tag = Int32
 
 enum Intercept: String { case upside, lowerside }
 
 enum Dimension: Tag { case second = 2, third = 3 }
 
+enum Boundary: String { case c = "c-type", h = "h-type", o = "o-type" }
+
+struct Transfinite {
+    var label: TransfiniteLabel
+    var points: Tag
+    var type: TransfiniteType
+    var parameter: Double
+    
+    enum TransfiniteLabel: String { case contour, inlet, vertical, wake }
+    enum TransfiniteType: String { case beta = "Beta", bump = "Bump", progression = "Progression "}
+}
+
+
 struct Point {
     var tag: Int32
-    var type: String?
+    var label: String?
     let abscissa: Double
     let ordinate: Double
     
-    init(from coordinate: CGPoint, as index: Int, type: String? = nil) {
-        self.type = type
+    init(from coordinate: CGPoint, as index: Int, label: String? = nil) {
+        self.label = label
         self.tag = Tag(index)
         self.abscissa = coordinate.x
         self.ordinate = coordinate.y
     }
     
-    init(abscissa: Double, ordinate: Double, as index: Int, type: String? = nil) {
-        self.type = type
-        self.tag = Tag(index)
+    init(abscissa: Double, ordinate: Double, as index: Tag, label: String? = nil) {
+        self.label = label
+        self.tag = index
         self.abscissa = abscissa
         self.ordinate = ordinate
     }
     
-    func isAt(x: Double, y: Double) -> Bool {
-        self.abscissa == x && self.ordinate == y
+    init(abscissa: Double, ordinate: Double, as index: Int, label: String? = nil) {
+        self.label = label
+        self.tag = Tag(index)
+        self.abscissa = abscissa
+        self.ordinate = ordinate
     }
     
     func closer(than point: Self, to intercept: Double, on axis: Axis) -> Bool {
@@ -52,68 +66,26 @@ struct Point {
     }
 }
 
-enum Geometry {
-    case lines
-    case circle
-    case loop
-    case surface
-    
-    func build(from start: Tag, to end: Tag, center: Tag, into instance: inout Tag) {
-        guard self == .circle else { return }
-        _ = withUnsafeMutablePointer(to: &instance) {
-            gmshModelGeoAddCircleArc(start, center, end, -1, 0, 0, 0, $0)
-        }
-    }
-    
-    func build(from coordinates: [CGPoint], into instance: inout Tag, tags: ClosedRange<Tag>, accuracy: Double, plane: Double, closed: Bool = true) {
-        guard self == .lines else { return }
-        _ = coordinates.map { coordinate in
-            withUnsafeMutablePointer(to: &instance) {
-                gmshModelGeoAddPoint(
-                    coordinate.x, coordinate.y, plane, accuracy, -1, $0
-                )
-            }
-        }
-        _ = tags.map { index in
-            _ = withUnsafeMutablePointer(to: &instance) {
-                switch (index == tags.upperBound, closed) {
-                case (true, true): gmshModelGeoAddLine(index, tags.lowerBound, -1, $0)
-                default: gmshModelGeoAddLine(index, index + 1, -1, $0)
-                }
-            }
-        }
-    }
-    
-    func build(from range: ClosedRange<Tag>, into instance: inout Tag) {
-        guard self != .lines else { return }
-        let tags = range.map { $0 }
-        let pointers = tags.withUnsafeBufferPointer { $0.baseAddress }
-        withUnsafeMutablePointer(to: &instance) {
-            switch self {
-            case .loop: gmshModelGeoAddCurveLoop(pointers, tags.count, -1, 0, $0)
-            case .surface: gmshModelGeoAddPlaneSurface(pointers, tags.count, -1, $0)
-            default: return
-            }
-        }
-    }
-}
-
 struct Model {
     let label: String
     var instance: Tag
+    var type: Boundary
+    var intercept: Double = 0.25
     var contour: [Point]? = nil
-    var intercept: Double = 0.175
+    var boundary: [Point]? = nil
     
     private var points: Tag = .zero
     private var lines: Tag = .zero
     private var loops: Tag = .zero
     private var surfaces: Tag = .zero
     
-    init(label: String, instance: Tag, intercept: Double = 0.25) {
+    init(label: String, instance: Tag, intercept: Double = 0.25, boundary: Boundary) {
         self.label = label
         self.instance = instance
+        self.type = boundary
         self.intercept = intercept
         self.contour = nil
+        self.boundary = nil
         self.points = .zero
         self.lines = .zero
         self.loops = .zero
@@ -123,9 +95,9 @@ struct Model {
     private func intercept(from closest: [Int], at side: Intercept, on contour: inout [Point]) {
         switch contour[closest[0]].abscissa.isEqual(to: intercept) {
         case true:
-            contour[closest[0]].type = side.rawValue
+            contour[closest[0]].label = side.rawValue
         case false:
-            let upside = Point(from: contour[closest[0]].interpolate(to: contour[closest[1]], at: intercept, on: .horizontal), as: contour.count, type: side.rawValue)
+            let upside = Point(from: contour[closest[0]].interpolate(to: contour[closest[1]], at: intercept, on: .horizontal), as: contour.count, label: side.rawValue)
             contour.insert(upside, at: contour[closest[0]].abscissa < upside.abscissa ? closest[0] : closest[0] - 1)
         }
     }
@@ -138,8 +110,8 @@ struct Model {
         guard let trailing =
                 contour.firstIndex(where: { $0.tag == sorted.last!.tag } )
         else { return }
-        contour[leading].type = "leading"
-        contour[trailing].type = "trailing"
+        contour[leading].label = "leading"
+        contour[trailing].label = "trailing"
         let first = leading < trailing ? 1..<leading : (trailing + 1)..<leading
         let second = leading < trailing ?
         (leading + 1)..<trailing : (leading + 1)..<contour.count - 1
@@ -150,14 +122,14 @@ struct Model {
         switch contour.first!.ordinate == contour.last?.ordinate {
         case true: break
         case false:
-            contour[trailing].type = nil
-            contour.append(Point(abscissa: 1, ordinate: 0, as: contour.count + 1, type: "trailing"))
+            contour[trailing].label = nil
+            contour.append(Point(abscissa: 1, ordinate: 0, as: contour.count + 1, label: "trailing"))
         }
         for index in contour.indices { contour[index].tag = Int32(index + 1) }
     }
     
-    private mutating func points(on plane: Double, precision: Double) {
-        guard let contour = self.contour else { return }
+    private mutating func points(from contour: [Point], on plane: Double, precision: Double) {
+            points += Tag(contour.count)
         _ = contour.map { point in
             withUnsafeMutablePointer(to: &instance) {
                 gmshModelGeoAddPoint(point.abscissa, point.ordinate, plane, precision, -1, $0)
@@ -165,13 +137,35 @@ struct Model {
         }
     }
     
-    private func find(edge: String) -> Point? {
-        guard let contour = self.contour else { return nil }
-        guard let edge = contour.first(where: {$0.type == edge })
+    private func find(edge: String, on boundary: [Point]?) -> Point? {
+        guard let boundary else { return nil }
+        guard let edge = boundary.first(where: {$0.label == edge })
         else { return nil }
         return edge
     }
     
+    private mutating func arc(from beginning: Point?, to end: Point?, center: Point) {
+        guard let beginning else { return }
+        guard let end else { return }
+        lines.increment()
+        _ = withUnsafeMutablePointer(to: &instance) {
+            gmshModelGeoAddCircleArc(beginning.tag, center.tag, end.tag, lines, 0, 0, 0, $0)
+        }
+    }
+    
+    private mutating func line(from beginning: Tag, to end: Tag) {
+        lines.increment()
+        _ = withUnsafeMutablePointer(to: &instance) {
+            gmshModelGeoAddLine(beginning, end, lines, $0)
+        }
+    }
+    
+    private mutating func lines(tags: [Tag]) {
+        _ = (tags[0]...tags.beforeLast(1)).map { tag in
+            line(from: tag, to: tag + 1)
+        }
+    }
+        
     private mutating func spline(tags: [Tag]) {
         lines.increment()
         let pointers = tags.withUnsafeBufferPointer { $0.baseAddress }
@@ -180,111 +174,61 @@ struct Model {
         }
     }
     
+    private mutating func loop(over tags: [Tag]) {
+        loops.increment()
+        let pointers = tags.withUnsafeBufferPointer { $0.baseAddress }
+        _ = withUnsafeMutablePointer(to: &instance) {
+            gmshModelGeoAddCurveLoop(pointers, tags.count, loops, 0, $0)
+        }
+    }
+    
+    private mutating func surface(from tags: [Tag]) {
+        surfaces.increment()
+        let pointers = tags.withUnsafeBufferPointer { $0.baseAddress }
+        _ = withUnsafeMutablePointer(to: &instance) {
+            gmshModelGeoAddPlaneSurface(pointers, tags.count, surfaces, $0)
+        }
+    }
+ 
     private mutating func splines() {
-        guard let upmost = find(edge: "upside") else { return }
-        guard let lowermost = find(edge: "lowerside") else { return }
-        guard let leading = find(edge: "leading") else { return }
-        guard let trailing = find(edge: "trailing") else { return }
+        guard let upmost = find(edge: "upside", on: contour) else { return }
+        guard let lowermost = find(edge: "lowerside", on: contour) else { return }
+        guard let trailing = find(edge: "trailing", on: contour) else { return }
         guard let contour = self.contour else { return }
         var foremost = (contour[0].tag...upmost.tag).map { $0 }
         foremost.insert(trailing.tag, at: 0)
         spline(tags: foremost)
-        spline(tags: (upmost.tag...leading.tag).map { $0 })
-        spline(tags: (leading.tag...lowermost.tag).map { $0 })
+        spline(tags: (upmost.tag...lowermost.tag).map { $0 })
         spline(tags: (lowermost.tag...trailing.tag).map { $0 })
     }
 
-    mutating private func update() {
-        withUnsafeMutablePointer(to: &instance) { gmshModelGeoSynchronize($0) }
+    private mutating func transfinite(line: Tag, condition: Transfinite) {
+        withUnsafeMutablePointer(to: &instance) {
+            gmshModelGeoMeshSetTransfiniteCurve(line, condition.points, condition.type.rawValue, condition.parameter, $0)
+        }
     }
-    /*
-    init(contour: Contour, plane: Double = .zero, accuracy: (boundary: Double, contour: Double)) {
-        self.name = contour.name
-        self.coordinates = contour.coordinates
-        self.plane = plane
-        self.accuracy = accuracy
-        self.instance = 0
-        withUnsafeMutablePointer(to: &instance) { gmshInitialize(0, nil, 1, 0, $0) }
-        withUnsafeMutablePointer(to: &instance) { gmshModelAdd(name, $0) }
+        
+    private mutating func transfinite(surface: Tag, boundary points: [Point]) {
+        let tags = points.map { $0.tag }
+        let pointers = tags.withUnsafeBufferPointer { $0.baseAddress }
+        withUnsafeMutablePointer(to: &instance) {
+            gmshModelGeoMeshSetTransfiniteSurface(surface, "Left", pointers, points.count, $0)
+        }
     }
     
-    mutating func contour() {
-        coordinates.open()
-        Geometry.lines.build(
-            from: coordinates,
-            into: &instance,
-            tags: 1...Tag(coordinates.count),
-            accuracy: accuracy.contour,
-            plane: plane
-        )
-        Geometry.loop.build(from: 1...Tag(coordinates.count), into: &instance)
-    }
-    
-    mutating func boundary(radius: Double = 1) {
-        guard !coordinates.isEmpty else { return }
-        let sorted = coordinates.sorted(by: {$0.y < $1.y})
-        let bottom = sorted.first!.y
-        let top = sorted.last!.y
-        let leading: Double = 0
-        let trailing: Double = 1
-        let points: [CGPoint] = [
-            CGPoint(x: leading, y: bottom - radius),
-            CGPoint(x: trailing + radius, y: bottom - radius),
-            CGPoint(x: trailing + radius, y: top + radius),
-            CGPoint(x: leading, y: top + radius),
-            CGPoint(x: leading, y: 0.5*(top + bottom))
-        ]
-        let tags = Tag(coordinates.count+1)...Tag(coordinates.count + points.count - 2)
-        Geometry.lines.build(
-            from: points,
-            into: &instance,
-            tags: tags,
-            accuracy: accuracy.boundary,
-            plane: plane,
-            closed: false
-        )
-        Geometry.circle.build(
-            from: Tag(coordinates.count + points.count - 1),
-            to: Tag(coordinates.count + 1),
-            center: Tag(coordinates.count + points.count),
-            into: &instance
-        )
-        let circular = Tag(coordinates.count+1)...Tag(coordinates.count + points.count - 1)
-        Geometry.loop.build(from: circular, into: &instance)
-    }
-    */
-    /*
-        let curves = (1...lines).map { line in
-            withUnsafeMutablePointer(to: &instance) {
-                gmshModelGeoMeshSetTransfiniteCurve(line, 100, "Progression", 1.0, $0);
-            }
-            return line
-        }
-        var pointers = curves.withUnsafeBufferPointer { $0.baseAddress }
-        _ = withUnsafeMutablePointer(to: &instance) {
-            gmshModelGeoAddCurveLoop(pointers, curves.count, -1, 0, $0)
-        }
-        loops.increment()
-        let loopz: [Tag] = [1]
-        pointers = loopz.withUnsafeBufferPointer { $0.baseAddress }
-        _ = withUnsafeMutablePointer(to: &instance) {
-            gmshModelGeoAddPlaneSurface(pointers, 1, 1, $0)
-        }
-        surfaces.increment()
-        let tags: [Tag] = [trailing.tag, upmost.tag, leading.tag, lowermost.tag]
-        pointers = tags.withUnsafeBufferPointer { $0.baseAddress }
+    private mutating func recombine(_ surface: Tag, dimension: Dimension) {
         withUnsafeMutablePointer(to: &instance) {
-            gmshModelGeoMeshSetTransfiniteSurface(1, "Left", pointers, tags.count, $0);
-        }
-        withUnsafeMutablePointer(to: &instance) {
-            gmshModelGeoMeshSetRecombine(2, 1, 45.0, $0);
+            gmshModelGeoMeshSetRecombine(dimension.rawValue, surface, 45.0, $0)
         }
     }
-    */
     
     mutating func launch() {
         withUnsafeMutablePointer(to: &instance) { gmshInitialize(0, nil, 1, 0, $0) }
         withUnsafeMutablePointer(to: &instance) { gmshModelAdd(label, $0) }
+    }
+    
+    mutating private func update() {
+        withUnsafeMutablePointer(to: &instance) { gmshModelGeoSynchronize($0) }
     }
     
     mutating func contour(from coordinates: [CGPoint], on plane: Double, precision: Double) {
@@ -296,14 +240,84 @@ struct Model {
         }
         edges(of: &contour)
         self.contour = contour
-        self.points = Tag(contour.count)
-        points(on: plane, precision: precision)
+        points(from: contour, on: plane, precision: precision)
         splines()
+    }
+    
+    mutating func boundary(radius: Double = 10, on plane: Double, precision: Double) {
+        guard let upside = find(edge: "upside", on: contour) else { return }
+        guard let lowerside = find(edge: "lowerside", on: contour) else { return }
+        guard let leading = find(edge: "leading", on: contour) else { return }
+        guard let trailing = find(edge: "trailing", on: contour) else { return }
+        
+        let boundary: [Point] = switch self.type {
+        case .c: [
+            Point(abscissa: leading.abscissa, ordinate: -0.5*radius, as: points + 1, label: "firstmost"),
+            Point(abscissa: trailing.abscissa, ordinate: -0.5*radius, as: points + 2, label: "lowermost"),
+            Point(abscissa: trailing.abscissa + radius, ordinate: -0.5*radius, as: points + 3),
+            Point(abscissa: trailing.abscissa + radius, ordinate: trailing.ordinate, as: points + 4, label: "rightmost"),
+            Point(abscissa: trailing.abscissa + radius, ordinate: 0.5*radius, as: points + 5),
+            Point(abscissa: trailing.abscissa, ordinate: 0.5*radius, as: points + 6, label: "upmost"),
+            Point(abscissa: leading.abscissa, ordinate: 0.5*radius, as: points + 7, label: "lastmost")
+        ]
+        default: []
+        }
+        points(from: boundary, on: plane, precision: precision)
+        lines(tags: boundary.map { $0.tag })
+        self.boundary = boundary
+        switch self.type {
+        case .c:
+            arc(from: boundary.last, to: boundary.first, center: leading)
+            guard let firstmost = find(edge: "firstmost", on: boundary) else { return }
+            guard let lowermost = find(edge: "lowermost", on: boundary) else { return }
+            guard let rightmost = find(edge: "rightmost", on: boundary) else { return }
+            guard let upmost = find(edge: "upmost", on: boundary) else { return }
+            guard let lastmost = find(edge: "lastmost", on: boundary) else { return }
+            line(from: firstmost.tag, to: lowerside.tag)
+            line(from: trailing.tag, to: lowermost.tag)
+            line(from: rightmost.tag, to: trailing.tag)
+            line(from: upmost.tag, to: trailing.tag)
+            line(from: upside.tag, to: lastmost.tag)
+            loop(over: [11, -2, 15, 10])
+            loop(over: [11, 3, 12, -4])
+            loop(over: [12, 5, 6, 13])
+            loop(over: [7, 8, 14, -13])
+            loop(over: [14, 1, 15, -9])
+            _ = (1...5).map { surface(from: [$0]) }
+        default: break
+        }
+    }
+    
+    mutating func structure(conditions: [Transfinite]) {
+        switch type {
+        case .c:
+            guard let contour = conditions.first(where: { $0.label == .contour } )
+            else { return }
+            guard let inlet = conditions.first(where: { $0.label == .inlet } )
+            else { return }
+            guard let vertical = conditions.first(where: { $0.label == .vertical } )
+            else { return }
+            guard let wake = conditions.first(where: { $0.label == .wake } )
+            else { return }
+            let contours: [Tag] = [1, 3, 4, 9]
+            let inlets: [Tag] = [10, 2]
+            let verticals: [Tag] = [6, 7, 11, 12, 14, 15]
+            let wakes: [Tag] = [5, 8, 13]
+            _ = contours.map { transfinite(line: $0, condition: contour) }
+            _ = inlets.map { transfinite(line: $0, condition: inlet) }
+            _ = verticals.map { transfinite(line: $0, condition: vertical) }
+            _ = wakes.map { transfinite(line: $0, condition: wake) }
+            _ = (1...5).map { transfinite(surface: $0, boundary: []) }
+            _ = (1...5).map { recombine($0, dimension: .second) }
+        default: return
+        }
     }
     
     mutating func mesh(dimension: Dimension, showcase: Bool = true) {
         self.update()
-        withUnsafeMutablePointer(to: &instance) { gmshModelMeshGenerate(dimension.rawValue, $0) }
+        withUnsafeMutablePointer(to: &instance) {
+            gmshModelMeshGenerate(dimension.rawValue, $0)
+        }
         withUnsafeMutablePointer(to: &instance) { gmshWrite(label, $0) }
         if showcase { withUnsafeMutablePointer(to: &instance) { gmshFltkRun($0) } }
         withUnsafeMutablePointer(to: &instance) { gmshFinalize($0) }

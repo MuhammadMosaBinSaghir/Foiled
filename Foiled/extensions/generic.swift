@@ -9,6 +9,10 @@ extension Comparable {
 }
 
 extension Array where Element: Equatable {
+    func beforeLast(_ k: Int) -> Element {
+        guard k < count - 1 else { return self[0] }
+        return self[count - k - 1]
+    }
     mutating func deduplicate() {
         self = self.reduce(into: [Element]()) { result, element in
             guard !result.contains(element) else { return }
