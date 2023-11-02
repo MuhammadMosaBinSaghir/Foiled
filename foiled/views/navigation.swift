@@ -3,10 +3,14 @@ import SwiftUI
 
 struct Navigation: View {
     @State var selected: Contour
+    @State private var moving: Bool = false
     @State private var search: String = ""
     @State private var options = Set<Contouring>()
+    @State private var format: MeshFormat = .msh
     
+    private let manager = FileManager.default
     private let pasteboard = NSPasteboard.general
+    
     private let gridlines = Gridlines(
         style: (minor: .init(lineWidth: 0.5, lineJoin: .round, dash: [5]), major: .init(lineWidth: 0.5, lineJoin: .round, dash: [5])),
         domain: (abscissa: -0.25...1.25, ordinate: -0.5...0.5),
@@ -27,18 +31,20 @@ struct Navigation: View {
     var body: some View {
         NavigationSplitView() {
             Sidebar()
+                .frame(minWidth: 240)
         } detail: {
             Details()
                 .ignoresSafeArea()
-                .frame(minWidth: 1000)
+                .frame(minWidth: 960)
         }
         .navigationTitle("")
         .toolbar { Toolbar() }
+        .frame(minWidth: 1200, minHeight: 800)
         .toolbarBackground(.clear, for: .automatic)
     }
     
-    @ViewBuilder private func Buttoned() -> some View {
-        RoundedRectangle(cornerRadius: 4, style: .continuous).fill(.background).strokeBorder(style: .init(lineWidth: 0.5)).foregroundStyle(.secondary).shadow(radius: 4)
+    @ViewBuilder private func Buttoned<S: Shape>(shape: S) -> some View {
+        shape.fill(.background).stroke(.secondary, style: .init(lineWidth: 0.5)).foregroundStyle(.secondary).shadow(radius: 4)
     }
     
     @ViewBuilder private func Copy() -> some View {
@@ -50,41 +56,40 @@ struct Navigation: View {
         }
     }
     
-    @ViewBuilder private func Dot() -> some View {
-        Button {
-            dotted()
-        } label: {
-            Label("Dotted", systemImage: options.contains(.dotted) ? "eye" : "eye.slash")
-                .frame(width: 24, height: 24)
+    @ViewBuilder private func Selector<H: Hashable, R: RandomAccessCollection, V: View>(_ selection: Binding<H>, in range: R, button: () -> V) -> some View where R.Element: Hashable, R.Element: LosslessStringConvertible {
+        HStack(alignment: .center, spacing: 4) {
+            button()
+            .background(Buttoned(shape: .rect(topLeadingRadius: 4, bottomLeadingRadius: 4)))
+            Picker("", selection: selection) {
+                ForEach(range, id: \.self) { Text("\($0.description)") }
+            }
+            .aspectRatio(contentMode: .fill)
+            .pickerStyle(.menu)
+            .background(Buttoned(shape: .rect(bottomTrailingRadius: 4, topTrailingRadius: 4)))
         }
-    }
-    
-    @ViewBuilder private func Mesh() -> some View {
-        Button {
-            mesh()
-        } label: {
-            Label("Copy", systemImage: "cube.transparent")
-                .frame(width: 24, height: 24)
-        }
-    }
-    
-    @ViewBuilder private func Dots() -> some View {
-        Picker("Points", selection: $selected.points) {
-            ForEach(range, id: \.self) { Text("\($0) points") }
-        }
-        .background(Buttoned())
-        .frame(height: 24)
     }
     
     @ViewBuilder private func Toolbar() -> some View {
         HStack(alignment: .center, spacing: 8) {
-            HStack(spacing: 0) {
-                Copy()
-                Mesh()
-                Dot()
+            Selector($selected.points, in: range, button: {
+                Button { dotted() } label: {
+                    Label(
+                        "Dotted",
+                        systemImage: options.contains(.dotted) ?
+                        "smallcircle.circle" : "smallcircle.filled.circle"
+                    )
+                    .frame(width: 24, height: 24)
+                }
+            })
+            Selector($format, in: MeshFormat.allCases) {
+                Button { mesh() } label: {
+                    Label("Mesh", systemImage: "cube.transparent")
+                        .frame(width: 24, height: 24)
+                }
+                .fileMover(isPresented: $moving, file: link()) { result in
+                    process(result)
+                }
             }
-            .background(Buttoned())
-            Dots()
         }
     }
     
@@ -157,18 +162,11 @@ struct Navigation: View {
         .searchable(text: $search, placement: .sidebar, prompt: "Search")
     }
     
-    private func mesh() {
-        var model = Model(label: selected.name, instance: 1, boundary: .c)
-        model.launch()
-        model.contour(from: selected.coordinates, on: .zero, precision: 0.01)
-        model.boundary(radius: 100, on: .zero, precision: 1)
-        model.structure(conditions: [
-            Transfinite(label: .contour, points: 100, type: .bump, parameter: 1),
-            Transfinite(label: .inlet, points: 100, type: .progression, parameter: 1),
-            Transfinite(label: .vertical, points: 100, type: .progression, parameter: 1),
-            Transfinite(label: .wake, points: 100, type: .progression, parameter: 1),
-        ])
-        model.mesh(dimension: .second, showcase: true)
+    private func link() -> URL {
+        let path = selected.name + "." + format.description
+        var file = manager.homeDirectoryForCurrentUser
+        file.append(path: path)
+        return file
     }
     
     private func copy() {
@@ -187,9 +185,30 @@ struct Navigation: View {
     init(selected: Contour) {
         self.selected = selected
     }
+    
+    private func mesh() {
+        var model = Model(label: selected.name, instance: 1, boundary: .c)
+        model.launch()
+        model.contour(from: selected.coordinates, on: .zero, precision: 0.01)
+        model.boundary(radius: 5, on: .zero, precision: 1)
+        model.structure(conditions: [
+            Transfinite(label: .contour, points: 10, type: .bump, parameter: 1),
+            Transfinite(label: .inlet, points: 10, type: .progression, parameter: 1),
+            Transfinite(label: .vertical, points: 10, type: .progression, parameter: 1),
+            Transfinite(label: .wake, points: 10, type: .progression, parameter: 1),
+        ])
+        model.mesh(dimension: .second, format: format)
+        moving = true
+    }
+    
+    private func process(_ result: Result<URL, Error>) {
+        switch result {
+        case .success: return
+        case .failure(let error): print(error.localizedDescription)
+        }
+    }
 }
 
 #Preview {
     Navigation(selected: library.first(where: {$0.name == "20-32C"})!)
 }
-

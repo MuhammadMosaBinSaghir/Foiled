@@ -28,7 +28,6 @@ struct Contour: Decodable, Shape {
     var options: Set<Contouring>
     var dot: CGFloat
     var points: Int
-    //var edge: Edge
     
     var thickness: Thickness {
         let ordered = coordinates.sorted(by: {$0.y < $1.y})

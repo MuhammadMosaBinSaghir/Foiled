@@ -18,6 +18,7 @@
 		C3606AA32AE9EADA00396DFF /* models.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3606AA22AE9EADA00396DFF /* models.swift */; };
 		C3606AA52AE9EAE700396DFF /* parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3606AA42AE9EAE700396DFF /* parser.swift */; };
 		C3606AA72AE9EB3D00396DFF /* library.json in Resources */ = {isa = PBXBuildFile; fileRef = C3606AA62AE9EB3D00396DFF /* library.json */; };
+		C37E43DC2AF326EF0054E305 /* mover.swift in Sources */ = {isa = PBXBuildFile; fileRef = C37E43DB2AF326EF0054E305 /* mover.swift */; };
 		C3A2E62A2AC160780080AAAE /* app.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A2E6292AC160780080AAAE /* app.swift */; };
 		C3A2E62E2AC160790080AAAE /* build.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A2E62D2AC160790080AAAE /* build.xcassets */; };
 		C3A2E6312AC160790080AAAE /* preview.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A2E6302AC160790080AAAE /* preview.xcassets */; };
@@ -52,6 +53,7 @@
 		C3606AA22AE9EADA00396DFF /* models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = models.swift; sourceTree = "<group>"; };
 		C3606AA42AE9EAE700396DFF /* parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = parser.swift; sourceTree = "<group>"; };
 		C3606AA62AE9EB3D00396DFF /* library.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = library.json; sourceTree = "<group>"; };
+		C37E43DB2AF326EF0054E305 /* mover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mover.swift; sourceTree = "<group>"; };
 		C3A2E6262AC160780080AAAE /* Foiled.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Foiled.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3A2E6292AC160780080AAAE /* app.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = app.swift; sourceTree = "<group>"; };
 		C3A2E62D2AC160790080AAAE /* build.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = build.xcassets; sourceTree = "<group>"; };
@@ -78,7 +80,6 @@
 			isa = PBXGroup;
 			children = (
 				C3606AA22AE9EADA00396DFF /* models.swift */,
-				C3606AA42AE9EAE700396DFF /* parser.swift */,
 				C3606AA62AE9EB3D00396DFF /* library.json */,
 			);
 			path = airfoils;
@@ -89,6 +90,8 @@
 			children = (
 				C3606A912AE9E9B800396DFF /* gridlines.swift */,
 				C3606A8E2AE9E98700396DFF /* navigation.swift */,
+				C3606AA42AE9EAE700396DFF /* parser.swift */,
+				C37E43DB2AF326EF0054E305 /* mover.swift */,
 			);
 			path = views;
 			sourceTree = "<group>";
@@ -109,7 +112,7 @@
 		C3A2E61D2AC160780080AAAE = {
 			isa = PBXGroup;
 			children = (
-				C3A2E6282AC160780080AAAE /* Foiled */,
+				C3A2E6282AC160780080AAAE /* foiled */,
 				C3A2E6272AC160780080AAAE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -122,7 +125,7 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		C3A2E6282AC160780080AAAE /* Foiled */ = {
+		C3A2E6282AC160780080AAAE /* foiled */ = {
 			isa = PBXGroup;
 			children = (
 				C3A2E63D2AC161DA0080AAAE /* frameworks */,
@@ -135,7 +138,7 @@
 				C3A2E6382AC161290080AAAE /* c-wrapper */,
 				C3A2E6432AC1E8250080AAAE /* s-wrapper */,
 			);
-			path = Foiled;
+			path = foiled;
 			sourceTree = "<group>";
 		};
 		C3A2E62F2AC160790080AAAE /* assets */ = {
@@ -210,7 +213,7 @@
 					};
 				};
 			};
-			buildConfigurationList = C3A2E6212AC160780080AAAE /* Build configuration list for PBXProject "Foiled" */;
+			buildConfigurationList = C3A2E6212AC160780080AAAE /* Build configuration list for PBXProject "foiled" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -248,6 +251,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C37E43DC2AF326EF0054E305 /* mover.swift in Sources */,
 				C3A2E62A2AC160780080AAAE /* app.swift in Sources */,
 				C3606AA52AE9EAE700396DFF /* parser.swift in Sources */,
 				C3606A9D2AE9EA4900396DFF /* generic.swift in Sources */,
@@ -446,7 +450,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		C3A2E6212AC160780080AAAE /* Build configuration list for PBXProject "Foiled" */ = {
+		C3A2E6212AC160780080AAAE /* Build configuration list for PBXProject "foiled" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C3A2E6332AC160790080AAAE /* Debug */,

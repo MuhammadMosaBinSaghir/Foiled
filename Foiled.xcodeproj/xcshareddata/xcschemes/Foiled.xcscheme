@@ -17,7 +17,7 @@
                BlueprintIdentifier = "C3A2E6252AC160780080AAAE"
                BuildableName = "Foiled.app"
                BlueprintName = "Foiled"
-               ReferencedContainer = "container:Foiled.xcodeproj">
+               ReferencedContainer = "container:foiled.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -46,7 +46,7 @@
             BlueprintIdentifier = "C3A2E6252AC160780080AAAE"
             BuildableName = "Foiled.app"
             BlueprintName = "Foiled"
-            ReferencedContainer = "container:Foiled.xcodeproj">
+            ReferencedContainer = "container:foiled.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -63,7 +63,7 @@
             BlueprintIdentifier = "C3A2E6252AC160780080AAAE"
             BuildableName = "Foiled.app"
             BlueprintName = "Foiled"
-            ReferencedContainer = "container:Foiled.xcodeproj">
+            ReferencedContainer = "container:foiled.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

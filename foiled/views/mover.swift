@@ -1,9 +1,11 @@
 import SwiftUI
 
-struct MovingExampleView: View {
+struct Mover: View {
     @State private var moving = false
+    
     let file: URL
     
+    private let folder = "/Users/administrator/Library/Containers/Shimmer.Foiled/Data"
     
     var body: some View {
         Button("Move files") {
