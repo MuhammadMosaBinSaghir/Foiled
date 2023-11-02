@@ -187,16 +187,15 @@ struct Navigation: View {
     }
     
     private func mesh() {
-        var model = Model(label: selected.name, instance: 1, boundary: .c)
-        model.launch()
-        model.contour(from: selected.coordinates, on: .zero, precision: 0.01)
-        model.boundary(radius: 5, on: .zero, precision: 1)
-        model.structure(conditions: [
-            Transfinite(label: .contour, points: 10, type: .bump, parameter: 1),
-            Transfinite(label: .inlet, points: 10, type: .progression, parameter: 1),
-            Transfinite(label: .vertical, points: 10, type: .progression, parameter: 1),
-            Transfinite(label: .wake, points: 10, type: .progression, parameter: 1),
-        ])
+        var model = Model(label: selected.name, intercept: 0.25)
+        model.contour(from: selected.coordinates, on: .zero, accuracy: 0.01)
+        model.boundary.radius(100)
+        model.bound()
+        model.boundary.contour.update(1/200, 0.1)
+        model.boundary.inlet.update(1/200, 1)
+        model.boundary.wake.update(1/50, 0.95)
+        model.boundary.walls.update(1/100, 0.95)
+        model.structure()
         model.mesh(dimension: .second, format: format)
         moving = true
     }

@@ -7,7 +7,42 @@ enum Intercept: String { case upside, lowerside }
 
 enum Dimension: Tag { case first = 1, second = 2, third = 3 }
 
-enum Boundary: String { case c = "c-type", h = "h-type", o = "o-type" }
+enum TransfiniteSector { case inner, outer }
+enum TransfiniteLabel: String { case contour, inlet, wake, walls }
+enum TransfiniteType: String { case beta = "Beta", bump = "Bump", progression = "Progression "}
+
+struct Transfinite {
+    var label: TransfiniteLabel
+    var accuracy: Double
+    var type: TransfiniteType
+    var stretch: Double
+    
+    var points: Tag {
+        guard accuracy > .zero else { return 1 }
+        return Tag(1/accuracy)
+    }
+    
+    mutating func update(_ accuracy: Double, _ stretch: Double) {
+        self.accuracy = accuracy
+        self.stretch = stretch
+    }
+    
+    func reversed() -> Self {
+        return Self.init(label: self.label, accuracy: self.accuracy, type: self.type, stretch: -1*self.stretch)
+    }
+    
+    func stretch(to sector: TransfiniteSector, reversed: Bool = false) -> Self {
+        let factor: Double = switch reversed { case true: -1; case false: 1 }
+        return Self.init(label: self.label, accuracy: self.accuracy, type: self.type, stretch: sector == .inner ? factor*self.stretch : 20*factor*self.stretch)
+    }
+    
+    func bump(reversed: Bool = false) -> Self {
+        let factor: Double = switch reversed { case true: -1; case false: 1 }
+        return Self.init(label: self.label, accuracy: self.accuracy, type: .bump, stretch: factor*self.stretch/4.75)
+    }
+}
+
+enum MeshType: String { case c = "c-type", h = "h-type", o = "o-type" }
 
 enum MeshFormat: CaseIterable, LosslessStringConvertible {
     case cgns, msh, stl, vtk, su2
@@ -34,16 +69,6 @@ enum MeshFormat: CaseIterable, LosslessStringConvertible {
         guard let formatted = format else { return nil }
         self = formatted
     }
-}
-
-struct Transfinite {
-    var label: TransfiniteLabel
-    var points: Tag
-    var type: TransfiniteType
-    var parameter: Double
-    
-    enum TransfiniteLabel: String { case contour, inlet, vertical, wake }
-    enum TransfiniteType: String { case beta = "Beta", bump = "Bump", progression = "Progression "}
 }
 
 struct Point {
@@ -92,13 +117,52 @@ struct Point {
     }
 }
 
+struct Boundary {
+    var accuracy: Double
+    var plane: Double
+    var radius: Double
+    var points: [Point]?
+    
+    var contour: Transfinite
+    var inlet: Transfinite
+    var wake: Transfinite
+    var walls: Transfinite
+    
+    init(accuracy: Double = 1, plane: Double = .zero, radius: Double = 1, points: [Point]? = nil) {
+        self.accuracy = accuracy
+        self.plane = plane
+        self.radius = radius
+        self.points = points
+        self.contour = .init(label: .contour, accuracy: 0.1, type: .bump, stretch: 1)
+        self.inlet = .init(label: .inlet, accuracy: 0.1, type: .progression, stretch: 1)
+        self.wake = .init(label: .wake, accuracy: 0.1, type: .progression, stretch: 1)
+        self.walls = .init(label: .walls, accuracy: 0.1, type: .progression, stretch: 1)
+    }
+    
+    mutating func radius(_ radius: Double) { self.radius = radius }
+    mutating func plane(_ plane: Double) { self.plane = plane }
+    mutating func accuracy(_ accuracy: Double) { self.accuracy = accuracy }
+    mutating func points(from points: [Point]) { self.points = points }
+    mutating func contour(accuracy: Double, stretch: Double) {
+        contour.update(accuracy, stretch)
+        print(contour)
+    }
+    mutating func inlet(accuracy: Double, stretch: Double) {
+        inlet.update(accuracy, stretch)
+    }
+    mutating func walls(accuracy: Double, stretch: Double) {
+        walls.update(accuracy, stretch)
+    }
+    mutating func wake(accuracy: Double, stretch: Double) { wake.update(accuracy, stretch) }
+}
+
 struct Model {
     let label: String
     var instance: Tag
-    var type: Boundary
+    var type: MeshType
+    var boundary: Boundary
     var intercept: Double = 0.175
     var contour: [Point]? = nil
-    var boundary: [Point]? = nil
     
     private var points: Tag = .zero
     private var lines: Tag = .zero
@@ -106,18 +170,24 @@ struct Model {
     private var surfaces: Tag = .zero
     private var groups: Tag = .zero
     
-    init(label: String, instance: Tag, intercept: Double = 0.175, boundary: Boundary) {
+    init(label: String, instance: Tag = 1, intercept: Double = 0.175, type: MeshType = .c) {
         self.label = label
         self.instance = instance
-        self.type = boundary
+        self.type = type
         self.intercept = intercept
         self.contour = nil
-        self.boundary = nil
         self.points = .zero
         self.lines = .zero
         self.loops = .zero
         self.surfaces = .zero
         self.groups = .zero
+        self.boundary = Boundary.init()
+        self.launch()
+    }
+    
+    mutating private func launch() {
+        withUnsafeMutablePointer(to: &instance) { gmshInitialize(0, nil, 1, 0, $0) }
+        withUnsafeMutablePointer(to: &instance) { gmshModelAdd(label, $0) }
     }
     
     private func intercept(from closest: [Int], at side: Intercept, on contour: inout [Point]) {
@@ -169,11 +239,11 @@ struct Model {
         withUnsafeMutablePointer(to: &instance) { gmshModelGeoSynchronize($0) }
     }
     
-    private mutating func points(from contour: [Point], on plane: Double, precision: Double) {
+    private mutating func points(from contour: [Point], on plane: Double, accuracy: Double) {
             points += Tag(contour.count)
         _ = contour.map { point in
             withUnsafeMutablePointer(to: &instance) {
-                gmshModelGeoAddPoint(point.abscissa, point.ordinate, plane, precision, -1, $0)
+                gmshModelGeoAddPoint(point.abscissa, point.ordinate, plane, accuracy, -1, $0)
             }
         }
     }
@@ -238,11 +308,11 @@ struct Model {
 
     private mutating func transfinite(line: Tag, condition: Transfinite) {
         withUnsafeMutablePointer(to: &instance) {
-            gmshModelGeoMeshSetTransfiniteCurve(line, condition.points, condition.type.rawValue, condition.parameter, $0)
+            gmshModelGeoMeshSetTransfiniteCurve(line, condition.points, condition.type.rawValue, condition.stretch, $0)
         }
     }
         
-    private mutating func transfinite(surface: Tag, boundary points: [Point]) {
+    private mutating func transfinite(surface: Tag, edges points: [Point]) {
         let tags = points.map { $0.tag }
         let pointers = tags.withUnsafeBufferPointer { $0.baseAddress }
         withUnsafeMutablePointer(to: &instance) {
@@ -270,12 +340,7 @@ struct Model {
         }
     }
     
-    mutating func launch() {
-        withUnsafeMutablePointer(to: &instance) { gmshInitialize(0, nil, 1, 0, $0) }
-        withUnsafeMutablePointer(to: &instance) { gmshModelAdd(label, $0) }
-    }
-    
-    mutating func contour(from coordinates: [CGPoint], on plane: Double, precision: Double) {
+    mutating func contour(from coordinates: [CGPoint], on plane: Double, accuracy: Double) {
         guard !coordinates.isEmpty else { return }
         guard (0.0...0.5).contains(intercept) else { return }
         var contour = [Point]()
@@ -284,17 +349,21 @@ struct Model {
         }
         edges(of: &contour)
         self.contour = contour
-        points(from: contour, on: plane, precision: precision)
+        points(from: contour, on: plane, accuracy: accuracy)
         splines()
     }
     
-    mutating func boundary(radius: Double = 10, on plane: Double, precision: Double) {
+    mutating func bound() {
+        let radius = boundary.radius
+        let plane = boundary.plane
+        let accuracy = boundary.accuracy
+        
         guard let upside = find(edge: "upside", on: contour) else { return }
         guard let lowerside = find(edge: "lowerside", on: contour) else { return }
         guard let leading = find(edge: "leading", on: contour) else { return }
         guard let trailing = find(edge: "trailing", on: contour) else { return }
         
-        let boundary: [Point] = switch self.type {
+        let definition: [Point] = switch self.type {
         case .c: [
             Point(abscissa: leading.abscissa, ordinate: -0.5*radius, as: points + 1, label: "firstmost"),
             Point(abscissa: trailing.abscissa, ordinate: -0.5*radius, as: points + 2, label: "lowermost"),
@@ -306,17 +375,17 @@ struct Model {
         ]
         default: []
         }
-        points(from: boundary, on: plane, precision: precision)
-        lines(tags: boundary.map { $0.tag })
-        self.boundary = boundary
+        points(from: definition, on: plane, accuracy: accuracy)
+        lines(tags: definition.map { $0.tag })
+        self.boundary.points(from: definition)
         switch self.type {
         case .c:
-            arc(from: boundary.last, to: boundary.first, center: leading)
-            guard let firstmost = find(edge: "firstmost", on: boundary) else { return }
-            guard let lowermost = find(edge: "lowermost", on: boundary) else { return }
-            guard let rightmost = find(edge: "rightmost", on: boundary) else { return }
-            guard let upmost = find(edge: "upmost", on: boundary) else { return }
-            guard let lastmost = find(edge: "lastmost", on: boundary) else { return }
+            arc(from: definition.last, to: definition.first, center: leading)
+            guard let firstmost = find(edge: "firstmost", on: definition) else { return }
+            guard let lowermost = find(edge: "lowermost", on: definition) else { return }
+            guard let rightmost = find(edge: "rightmost", on: definition) else { return }
+            guard let upmost = find(edge: "upmost", on: definition) else { return }
+            guard let lastmost = find(edge: "lastmost", on: definition) else { return }
             line(from: firstmost.tag, to: lowerside.tag)
             line(from: trailing.tag, to: lowermost.tag)
             line(from: rightmost.tag, to: trailing.tag)
@@ -333,26 +402,20 @@ struct Model {
         }
     }
     
-    mutating func structure(conditions: [Transfinite]) {
+    mutating func structure() {
         switch type {
         case .c:
-            guard let contour = conditions.first(where: { $0.label == .contour } )
-            else { return }
-            guard let inlet = conditions.first(where: { $0.label == .inlet } )
-            else { return }
-            guard let vertical = conditions.first(where: { $0.label == .vertical } )
-            else { return }
-            guard let wake = conditions.first(where: { $0.label == .wake } )
-            else { return }
-            let contours: [Tag] = [1, 3, 4, 9]
-            let inlets: [Tag] = [10, 2]
-            let verticals: [Tag] = [6, 7, 11, 12, 14, 15]
-            let wakes: [Tag] = [5, 8, 13]
-            _ = contours.map { transfinite(line: $0, condition: contour) }
-            _ = inlets.map { transfinite(line: $0, condition: inlet) }
-            _ = verticals.map { transfinite(line: $0, condition: vertical) }
-            _ = wakes.map { transfinite(line: $0, condition: wake) }
-            _ = (1...5).map { transfinite(surface: $0, boundary: []) }
+            _ = [1, 3].map { transfinite(line: $0, condition: boundary.contour.stretch(to: .inner))}
+            _ = [9, 4].map { transfinite(line: $0, condition: boundary.contour.stretch(to: .outer))}
+            _ = [2, 10].map { transfinite(line: $0, condition: boundary.inlet) }
+            transfinite(line: 13, condition: boundary.wake)
+            transfinite(line: 8, condition: boundary.wake.bump())
+            transfinite(line: 5, condition: boundary.wake.bump(reversed: true))
+            _ = [15, 7].map { transfinite(line: $0, condition: boundary.walls.reversed())}
+            _ = [6, 11].map { transfinite(line: $0, condition: boundary.walls)}
+            transfinite(line: 14, condition: boundary.walls)
+            transfinite(line: 12, condition: boundary.walls.reversed())
+            _ = (1...5).map { transfinite(surface: $0, edges: []) }
             _ = (1...5).map { recombine($0, dimension: .second) }
             let farfield: [Tag] = [4, 5, 6, 7, 8, 9, 10]
             let wall: [Tag] = [1, 2, 3]
